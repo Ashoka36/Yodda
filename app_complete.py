@@ -91,6 +91,10 @@ class PluginManage(BaseModel):
     user_email: str = None  # For admin to manage user plugins
     plugin: Plugin
 
+class PaymentRequest(BaseModel):
+    tier: str
+    lifetime: bool = False
+
 class PaymentProcess(BaseModel):
     tier: str
     card_number: str
@@ -356,7 +360,7 @@ def process_payment(data: PaymentProcess, payload = Depends(verify_token)):
     if not data.card_number or not data.expiry or not data.cvv:
         raise HTTPException(400, "Invalid card info")
     # Tomorrow: Integrate Infinity with provided creds
-    return subscribe(PaymentRequest(tier=data.tier), payload)
+    return subscribe(PaymentRequest(tier=data.tier, lifetime=False), payload)  # Adjust lifetime as needed
 
 @app.get("/payments/history")
 def payment_history(payload = Depends(verify_token)):
