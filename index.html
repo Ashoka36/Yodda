@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YODDA Premium v3.0 - Enterprise AI Builder</title>
+    <style>
+        /* Aurora Background - Multi-layer gradients with animation */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            background: #020617;
+            overflow-x: hidden;
+            position: relative;
+        }
+        .aurora-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(125% 125% at 50% 0%, rgba(2,6,23,0.8) 50%, transparent),
+                linear-gradient(135deg, rgba(0,255,0,0.1), rgba(0,0,255,0.1), rgba(255,0,255,0.1));
+            background-size: 400% 400%;
+            animation: auroraShift 20s ease infinite, auroraGlow 5s ease-in-out infinite alternate;
+            z-index: -1;
+            filter: blur(20px); /* Soft blur for organic feel */
+        }
+        @keyframes auroraShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes auroraGlow {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        /* Overlay for readability */
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2,6,23,0.7); z-index: -1; }
+
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; margin-bottom: 20px; transition: all 0.3s ease; }
+        header:hover { transform: scale(1.02); }
+        nav { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        nav button { background: linear-gradient(135deg, #23d5ab, #23a6d5); border: none; color: #fff; padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
+        nav button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(35,213,171,0.5); }
+
+        /* Forms & Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 10; }
+        .modal-content { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 20px; border-radius: 10px; width: 300px; text-align: center; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        input { display: block; width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #23a6d5; border-radius: 5px; background: rgba(255,255,255,0.05); color: #fff; }
+        button { background: #23d5ab; border: none; color: #fff; padding: 10px; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #1e9e8e; }
+
+        /* Dashboard */
+        #dashboard { display: none; }
+        #query-input { width: 100%; padding: 10px; margin-bottom: 10px; }
+        #result { margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; }
+        #agents-list, #tiers { margin-top: 20px; }
+        a { color: #23d5ab; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 768px) { nav { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    <div class="overlay"></div>
+    <div class="container">
+        <header>
+            <h1>YODDA Premium v3.0</h1>
+            <p>Enterprise AI Builder - Secure, Powerful, Aurora-Powered</p>
+        </header>
+        <nav id="nav">
+            <button onclick="showModal('login')">Login</button>
+            <button onclick="showModal('register')">Register</button>
+            <button onclick="logout()">Logout</button>
+            <button onclick="showDashboard()">Dashboard</button>
+        </nav>
+        <div id="dashboard">
+            <h2>Welcome, <span id="user-email"></span> (<span id="user-tier"></span>)</h2>
+            <p>Builds Used: <span id="builds-used"></span> | Remaining: <span id="builds-remaining"></span></p>
+            <input id="query-input" placeholder="Enter query (e.g., create a landing page)" />
+            <button onclick="orchestrate()">Build with Agents</button>
+            <div id="result"></div>
+            <h3>Agents</h3>
+            <ul id="agents-list"></ul>
+            <h3>Pricing Tiers</h3>
+            <ul id="tiers"></ul>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2>Login</h2>
+            <input id="login-email" placeholder="Email" />
+            <input id="login-password" type="password" placeholder="Password" />
+            <button onclick="login()">Submit</button>
+            <button onclick="closeModal('login')">Close</button>
+        </div>
+    </div>
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <h2>Register</h2>
+            <input id="reg-email" placeholder="Email" />
+            <input id="reg-password" type="password" placeholder="Password" />
+            <button onclick="register()">Submit</button>
+            <button onclick="closeModal('register')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://your-render-url.onrender.com'; // CHANGE TO YOUR BACKEND URL
+
+        function showModal(type) {
+            document.getElementById(`${type}-modal`).style.display = 'flex';
+        }
+        function closeModal(type) {
+            document.getElementById(`${type}-modal`).style.display = 'none';
+        }
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+        function setToken(token) {
+            localStorage.setItem('token', token);
+        }
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Logged out');
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            const token = getToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const res = await fetch(`${API_URL}${endpoint}`, { method, headers, body: body ? JSON.stringify(body) : null });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        }
+
+        async function login() {
+            try {
+                const data = await apiCall('/auth/login', 'POST', {
+                    email: document.getElementById('login-email').value,
+                    password: document.getElementById('login-password').value
+                });
+                setToken(data.token);
+                alert('Login successful');
+                closeModal('login');
+                showDashboard();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function register() {
+            try {
+                const data = await apiCall('/auth/register', 'POST', {
+                    email: document.getElementById('reg-email').value,
+                    password: document.getElementById('reg-password').value
+                });
+                setToken(data.token);
+                alert('Registered! License: ' + data.license_key);
+                closeModal('register');
+                showDashboard();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function showDashboard() {
+            if (!getToken()) return alert('Please login first');
+            try {
+                const user = await apiCall('/auth/me');
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('user-tier').textContent = user.tier;
+                document.getElementById('builds-used').textContent = user.builds_used;
+
+                const agents = await apiCall('/api/v1/swarm/agents');
+                const agentsList = document.getElementById('agents-list');
+                agentsList.innerHTML = '';
+                agents.agents.forEach(a => {
+                    const li = document.createElement('li');
+                    li.textContent = `${a.name} (${a.state}, Tasks: ${a.completed_tasks})`;
+                    agentsList.appendChild(li);
+                });
+
+                const tiers = await apiCall('/payments/tiers');
+                const tiersList = document.getElementById('tiers');
+                tiersList.innerHTML = '';
+                Object.entries(tiers.tiers).forEach(([key, val]) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${key}: $${val.price} - ${val.description}`;
+                    tiersList.appendChild(li);
+                });
+
+                // Calc remaining (simple, assumes daily reset not implemented)
+                const max = tiers.tiers[user.tier].builds;
+                document.getElementById('builds-remaining').textContent = max === -1 ? 'Unlimited' : max - user.builds_used;
+
+                document.getElementById('dashboard').style.display = 'block';
+            } catch (e) { alert('Error loading dashboard: ' + e.message); }
+        }
+
+        async function orchestrate() {
+            const query = document.getElementById('query-input').value;
+            if (!query) return alert('Enter a query');
+            try {
+                const res = await apiCall('/api/v1/swarm/orchestrate', 'POST', { query });
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <p>Status: ${res.status}</p>
+                    <p>Response: ${res.response}</p>
+                    <p>Agents Used: ${res.agents_used.join(', ')}</p>
+                    <p>Builds Remaining: ${res.builds_remaining}</p>
+                    <a href="${res.generated_url}" target="_blank">View Generated Project</a>
+                `;
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        // Auto-load dashboard if token exists
+        if (getToken()) showDashboard();
+    </script>
+</body>
+</html>
