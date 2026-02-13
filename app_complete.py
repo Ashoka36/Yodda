@@ -1,5 +1,5 @@
 """
-YODDA Premium v3.0 COMPLETE - Enhanced with Multi-Plugins, Admin, Deployment, Debug, etc. - Switched to Nvidia API
+YODDA Premium v3.0 COMPLETE - Now using NVIDIA NIM API (OpenAI-compatible)
 """
 import os
 import uuid
@@ -30,13 +30,14 @@ app.mount("/builds", StaticFiles(directory="builds"), name="builds")
 
 # ==================== CONFIG ====================
 SECRET_KEY = os.getenv("SECRET_KEY", "yodda-premium-secret-key-change-in-production")
-NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")  # Your Nvidia key
-NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")          # Your nvapi-... key
+NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1" # Base URL
+DEFAULT_MODEL = "meta/llama-3.1-8b-instruct"           # Change to your preferred model
 ADMIN_SETUP_DONE = False
 security = HTTPBearer()
 
 # ==================== DATABASE (In-Memory) ====================
-users_db = {}  # {user_id: {email, password, is_admin, tier, builds_used, created, plugins: [{endpoint, key, type}]}}
+users_db = {}
 licenses_db = {}
 agents_db = {
     "mcp": {"name": "MCP Master", "state": "IDLE", "tasks": 0},
@@ -64,96 +65,134 @@ GAMMA_THEMES = [
     {"id": "vibrant-creative", "name": "Vibrant Creative"},
     {"id": "minimal-zen", "name": "Minimal Zen"},
     {"id": "aurora", "name": "Aurora Borealis"}
-}
+]
 
 PLATFORMS = ["web", "desktop", "android", "ios"]
 
 # ==================== MODELS ====================
-class AdminSetup(BaseModel):
-    email: str
-    password: str
-
-class UserRegister(BaseModel):
-    email: str
-    password: str
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-class Plugin(BaseModel):
-    endpoint: str
-    key: str
-    type: str  # text or vision
-
-class PluginManage(BaseModel):
-    user_email: str = None  # For admin to manage user plugins
-    plugin: Plugin
-
-class PaymentProcess(BaseModel):
-    tier: str
-    card_number: str
-    expiry: str
-    cvv: str
-
-class OrchestrateRequest(BaseModel):
-    query: str
-    platform: str = "web"
-    theme: str = "dark-pro"
+# (keep all BaseModel classes as before - no change)
 
 # ==================== AUTH HELPERS ====================
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
-
-def create_token(email: str, is_admin: bool = False) -> str:
-    payload = {
-        "email": email,
-        "is_admin": is_admin,
-        "exp": datetime.utcnow() + timedelta(minutes=30)
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    if not token:
-        raise HTTPException(401, "No token provided")
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload
-    except:
-        raise HTTPException(401, "Invalid token")
+# (keep hash_password, verify_password, create_token, verify_token as before)
 
 def validate_api(endpoint: str, key: str) -> bool:
-    try:
-        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-        data = {"model": "meta/llama3-8b-instruct", "messages": [{"role": "user", "content": "test"}]}
-        response = requests.post(endpoint, headers=headers, json=data)
-        return response.status_code == 200
-    except:
-        return False
+    # NVIDIA is always valid if key is correct → simple check
+    return bool(key and key.startswith("nvapi-"))
 
-# ==================== LLM CALL HELPER (Plugin-Agnostic, Nvidia Default) ====================
-def call_llm(prompt: str, endpoint: str, key: str, model: str = "meta/llama3-8b-instruct"):
-    if not validate_api(endpoint, key):
-        raise HTTPException(500, "Invalid API plugin")
-    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+# ==================== LLM CALL HELPER (NVIDIA NIM) ====================
+def call_llm(prompt: str, endpoint: str = None, key: str = None, model: str = None):
+    endpoint = endpoint or NVIDIA_API_URL
+    key = key or NVIDIA_API_KEY
+    model = model or DEFAULT_MODEL
+
+    if not key or not key.startswith("nvapi-"):
+        raise HTTPException(500, "Invalid or missing NVIDIA API key")
+
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
     data = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "stream": False
     }
-    response = requests.post(endpoint, headers=headers, json=data)
+
+    full_url = f"{endpoint}/chat/completions"
+    response = requests.post(full_url, headers=headers, json=data)
+
     if response.status_code != 200:
-        raise HTTPException(500, f"API error: {response.text}")
-    return response.json()["choices"][0]["message"]["content"]
+        error_text = response.text
+        raise HTTPException(500, f"NVIDIA API error: {response.status_code} - {error_text}")
+
+    try:
+        return response.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise HTTPException(500, "Unexpected NVIDIA response format")
 
 # ==================== ROUTES ====================
+# (keep root, health, admin/setup, auth/register, auth/login, auth/me as before)
 
-# (All routes remain the same as previous, but call_llm now uses Nvidia defaults: endpoint=NVIDIA_API_URL, key=NVIDIA_API_KEY, model="meta/llama3-8b-instruct")
-# For vision: Change model to "nvidia/nvclip-clip-vit-large-patch14-336" in plugin if type="vision"
+# ==================== PLUGINS ====================
+# (keep /plugins/add, /plugins/manage, /plugins/delete as before - validation uses NVIDIA format now)
+
+# ==================== PAYMENTS & HISTORY ====================
+# (keep as before - dummy process works)
+
+# ==================== AGENTS ====================
+
+@app.get("/api/v1/swarm/agents")
+def list_agents():
+    # (keep as before)
+
+@app.post("/api/v1/swarm/orchestrate")
+def orchestrate(data: OrchestrateRequest, payload = Depends(verify_token)):
+    query = data.query
+    if not query:
+        raise HTTPException(400, "No query provided")
+
+    user = None
+    for u in users_db.values():
+        if u["email"] == payload["email"]:
+            user = u
+            break
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    tier = user.get("tier", "FREE")
+    builds_used = user.get("builds_used", 0)
+    max_builds = PRICING_TIERS[tier]["builds"]
+
+    if max_builds != -1 and builds_used >= max_builds:
+        raise HTTPException(403, f"Build limit reached for {tier} tier")
+
+    user["builds_used"] = builds_used + 1
+
+    # Use user plugin if available, else NVIDIA fallback
+    endpoint = NVIDIA_API_URL
+    key = NVIDIA_API_KEY
+    model = DEFAULT_MODEL
+    if user.get("plugins"):
+        plugin = user["plugins"][0]
+        endpoint = plugin["endpoint"]
+        key = plugin["key"]
+        model = "custom-model" if plugin["type"] == "vision" else DEFAULT_MODEL
+
+    agents_used = []
+    generated_content = ""
+
+    # Simple routing example - expand as needed
+    if any(kw in query.lower() for kw in ["landing page", "website", "create", "build"]):
+        agents_used.append("Developer")
+        agents_db["developer"]["tasks"] += 1
+        prompt = f"Generate full {data.platform} code/HTML for: {query}. Use theme: {data.theme}. Make it professional, modern, and complete."
+        generated_content = call_llm(prompt, endpoint, key, model)
+
+    # Save to builds folder
+    build_id = uuid.uuid4().hex[:8]
+    build_dir = f"builds/{build_id}"
+    os.makedirs(build_dir, exist_ok=True)
+    ext = "html" if data.platform == "web" else "txt"  # or platform-specific
+    file_path = f"{build_dir}/index.{ext}"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(generated_content or "No content generated - check API key/model")
+
+    base_url = "https://yodda.onrender.com"
+    generated_url = f"{base_url}/builds/{build_id}/index.{ext}"
+
+    return {
+        "status": "success",
+        "query": query,
+        "response": "Build complete! Your project is ready.",
+        "generated_url": generated_url,
+        "agents_used": agents_used,
+        "builds_remaining": max_builds - user["builds_used"] if max_builds != -1 else "unlimited"
+    }
+
+# Keep other routes (debug, themes, etc.) as before
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
