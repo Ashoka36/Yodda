@@ -63,7 +63,6 @@
 
         /* Responsive */
         @media (max-width: 768px) { nav { flex-direction: column; } }
-
         .eye-icon { cursor: pointer; position: absolute; right: 10px; top: 35px; }
         #admin-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; }
         #payment-form { display: none; margin-top: 20px; }
@@ -75,7 +74,7 @@
     <div class="overlay"></div>
     <div class="container">
         <header>
-            <img id="logo" src="https://your-logo-url-here.com/logo.png" alt="Yodda Logo">  <!-- Replace with your uploaded logo URL, e.g., /logo.png if added to repo -->
+            <img id="logo" src="https://your-logo-url-here.com/logo.png" alt="Yodda Logo">  <!-- Replace with your uploaded logo URL -->
             <h1>Yodda</h1>
             <p>Enterprise AI Builder</p>
         </header>
@@ -286,6 +285,70 @@
                     <a href="${res.generated_url}" target="_blank">View Generated Project</a>
                     <button onclick="deployBuild('${res.generated_url}')">Deploy</button>
                 `;
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        function deployBuild(url) {
+            alert('Deployed successfully at: ' + url);  # Placeholder deployment
+        }
+
+        async function debugBuild() {
+            const query = document.getElementById('query-input').value;
+            if (!query) return alert('Enter a query');
+            try {
+                const res = await apiCall('/debug/build', 'POST', {
+                    query,
+                    platform: document.getElementById('platform-select').value,
+                    theme: document.getElementById('theme-select').value
+                });
+                alert(res.message + ' - ' + res.details);
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        async function addPlugin() {
+            try {
+                const data = await apiCall('/plugins/add', 'POST', {
+                    endpoint: document.getElementById('plugin-endpoint').value,
+                    key: document.getElementById('plugin-key').value,
+                    type: document.getElementById('plugin-type').value
+                });
+                alert('Plugin added');
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function managePlugin() {
+            try {
+                const data = await apiCall('/plugins/manage', 'POST', {
+                    user_email: document.getElementById('manage-user-email').value,
+                    plugin: {
+                        endpoint: document.getElementById('manage-endpoint').value,
+                        key: document.getElementById('manage-key').value,
+                        type: document.getElementById('manage-type').value
+                    }
+                });
+                alert('Plugin managed');
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        function showPaymentForm() {
+            document.getElementById('payment-form').style.display = 'block';
+        }
+
+        async function processPayment() {
+            try {
+                const data = await apiCall('/payments/process', 'POST', {
+                    tier: document.getElementById('tier-select').value,
+                    card_number: document.getElementById('card-number').value,
+                    expiry: document.getElementById('expiry').value,
+                    cvv: document.getElementById('cvv').value
+                });
+                alert('Payment successful - Tier upgraded');
+                showDashboard();
             } catch (e) { alert('Error: ' + e.message); }
         }
 
