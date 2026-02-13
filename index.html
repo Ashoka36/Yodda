@@ -63,6 +63,11 @@
 
         /* Responsive */
         @media (max-width: 768px) { nav { flex-direction: column; } }
+
+        .eye-icon { cursor: pointer; position: absolute; right: 10px; top: 35px; }
+        #admin-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; }
+        #payment-form { display: none; margin-top: 20px; }
+        #logo { width: 100px; display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -70,8 +75,9 @@
     <div class="overlay"></div>
     <div class="container">
         <header>
-            <h1>YODDA Premium v3.0</h1>
-            <p>Enterprise AI Builder - Secure, Powerful, Aurora-Powered</p>
+            <img id="logo" src="https://your-logo-url-here.com/logo.png" alt="Yodda Logo">  <!-- Replace with your uploaded logo URL, e.g., /logo.png if added to repo -->
+            <h1>Yodda</h1>
+            <p>Enterprise AI Builder</p>
         </header>
         <nav id="nav">
             <button onclick="showModal('login')">Login</button>
@@ -82,13 +88,65 @@
         <div id="dashboard">
             <h2>Welcome, <span id="user-email"></span> (<span id="user-tier"></span>)</h2>
             <p>Builds Used: <span id="builds-used"></span> | Remaining: <span id="builds-remaining"></span></p>
+            <div id="plugin-section">
+                <h3>Add Plugin</h3>
+                <input id="plugin-endpoint" placeholder="API Endpoint" />
+                <input id="plugin-key" placeholder="API Key" />
+                <select id="plugin-type">
+                    <option value="text">Text</option>
+                    <option value="vision">Vision</option>
+                </select>
+                <button onclick="addPlugin()">Add</button>
+            </div>
+            <select id="platform-select">
+                <option value="web">Web</option>
+                <option value="desktop">Desktop</option>
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+            </select>
+            <select id="theme-select">
+                <option value="dark-pro">Dark Professional</option>
+                <option value="light-modern">Light Modern</option>
+                <option value="blue-enterprise">Blue Enterprise</option>
+                <option value="vibrant-creative">Vibrant Creative</option>
+                <option value="minimal-zen">Minimal Zen</option>
+                <option value="aurora">Aurora Borealis</option>
+            </select>
             <input id="query-input" placeholder="Enter query (e.g., create a landing page)" />
             <button onclick="orchestrate()">Build with Agents</button>
+            <button onclick="debugBuild()">Debug Build</button>
             <div id="result"></div>
             <h3>Agents</h3>
             <ul id="agents-list"></ul>
             <h3>Pricing Tiers</h3>
             <ul id="tiers"></ul>
+            <div id="upgrade-section">
+                <select id="tier-select">
+                    <option value="BASIC">BASIC ($15/month)</option>
+                    <option value="PRO">PRO ($50/month)</option>
+                    <option value="ENTERPRISE">ENTERPRISE ($149/year)</option>
+                    <option value="PREMIUM">PREMIUM ($249/lifetime)</option>
+                </select>
+                <button onclick="showPaymentForm()">Upgrade</button>
+            </div>
+            <div id="payment-form">
+                <h3>Dummy Payment</h3>
+                <input id="card-number" placeholder="Card Number" />
+                <input id="expiry" placeholder="Expiry (MM/YY)" />
+                <input id="cvv" placeholder="CVV" />
+                <button onclick="processPayment()">Pay</button>
+            </div>
+            <div id="admin-panel">
+                <h3>Admin Panel</h3>
+                <input id="manage-user-email" placeholder="User Email (optional)" />
+                <input id="manage-endpoint" placeholder="API Endpoint" />
+                <input id="manage-key" placeholder="API Key" />
+                <select id="manage-type">
+                    <option value="text">Text</option>
+                    <option value="vision">Vision</option>
+                </select>
+                <button onclick="managePlugin()">Add/Delete API</button>
+            </div>
         </div>
     </div>
 
@@ -97,7 +155,10 @@
         <div class="modal-content">
             <h2>Login</h2>
             <input id="login-email" placeholder="Email" />
-            <input id="login-password" type="password" placeholder="Password" />
+            <div style="position: relative;">
+                <input id="login-password" type="password" placeholder="Password" />
+                <span class="eye-icon" onclick="togglePassword('login-password')">👁️</span>
+            </div>
             <button onclick="login()">Submit</button>
             <button onclick="closeModal('login')">Close</button>
         </div>
@@ -106,7 +167,10 @@
         <div class="modal-content">
             <h2>Register</h2>
             <input id="reg-email" placeholder="Email" />
-            <input id="reg-password" type="password" placeholder="Password" />
+            <div style="position: relative;">
+                <input id="reg-password" type="password" placeholder="Password" />
+                <span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span>
+            </div>
             <button onclick="register()">Submit</button>
             <button onclick="closeModal('register')">Close</button>
         </div>
@@ -194,9 +258,11 @@
                     tiersList.appendChild(li);
                 });
 
-                // Calc remaining (simple, assumes daily reset not implemented)
+                // Calc remaining
                 const max = tiers.tiers[user.tier].builds;
                 document.getElementById('builds-remaining').textContent = max === -1 ? 'Unlimited' : max - user.builds_used;
+
+                if (user.is_admin) document.getElementById('admin-panel').style.display = 'block';
 
                 document.getElementById('dashboard').style.display = 'block';
             } catch (e) { alert('Error loading dashboard: ' + e.message); }
@@ -206,7 +272,11 @@
             const query = document.getElementById('query-input').value;
             if (!query) return alert('Enter a query');
             try {
-                const res = await apiCall('/api/v1/swarm/orchestrate', 'POST', { query });
+                const res = await apiCall('/api/v1/swarm/orchestrate', 'POST', {
+                    query,
+                    platform: document.getElementById('platform-select').value,
+                    theme: document.getElementById('theme-select').value
+                });
                 const resultDiv = document.getElementById('result');
                 resultDiv.innerHTML = `
                     <p>Status: ${res.status}</p>
@@ -214,6 +284,7 @@
                     <p>Agents Used: ${res.agents_used.join(', ')}</p>
                     <p>Builds Remaining: ${res.builds_remaining}</p>
                     <a href="${res.generated_url}" target="_blank">View Generated Project</a>
+                    <button onclick="deployBuild('${res.generated_url}')">Deploy</button>
                 `;
             } catch (e) { alert('Error: ' + e.message); }
         }
