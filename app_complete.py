@@ -1,5 +1,5 @@
 """
-YODDA Premium v3.0 COMPLETE - With Real Grok AI Integration
+YODDA Premium v3.0 COMPLETE - With Real Grok AI Integration & Fixed Auth
 """
 import os
 import uuid
@@ -7,9 +7,10 @@ import bcrypt
 import jwt
 import requests
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import uvicorn
 
@@ -32,6 +33,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "yodda-premium-secret-key-change-in-product
 GROK_API_KEY = os.getenv("GROK_API_KEY")  # Your key from Render env
 GROK_API_URL = "https://api.x.ai/v1/chat/completions"
 ADMIN_SETUP_DONE = False
+security = HTTPBearer()
 
 # ==================== DATABASE (In-Memory) ====================
 users_db = {}
@@ -101,7 +103,8 @@ def create_token(email: str, is_admin: bool = False) -> str:
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-def verify_token(token: str = Header(None)):
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     if not token:
         raise HTTPException(401, "No token provided")
     try:
@@ -352,7 +355,7 @@ def orchestrate(request: dict, payload = Depends(verify_token)):
                 f.write(generated_content)
             
             # Build URL (adjust base to your Render URL in production)
-            base_url = request.get("base_url", "http://localhost:8000")  # Frontend can pass, or hardcode
+            base_url = request.get("base_url", "https://yodda.onrender.com")  # Use your actual backend URL
             generated_url = f"{base_url}/builds/{build_id}/index.html"
             
             return {
