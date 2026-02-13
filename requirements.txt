@@ -1,6 +1,6 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
-pydantic>=3.0.0  # Updated - supports newer PyO3/Python
+pydantic==2.9.2
 python-jose[cryptography]>=3.3.0
 PyJWT>=2.9.0
 python-multipart>=0.0.9
