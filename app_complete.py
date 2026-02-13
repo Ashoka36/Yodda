@@ -119,7 +119,7 @@ def call_grok(prompt: str):
         raise HTTPException(500, "GROK_API_KEY not configured")
     headers = {"Authorization": f"Bearer {GROK_API_KEY}", "Content-Type": "application/json"}
     data = {
-        "model": "grok-beta",
+        "model": "grok-4-1-fast-non-reasoning",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7
     }
@@ -390,3 +390,4 @@ def build_project(data: BuildRequest, payload = Depends(verify_token)):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
