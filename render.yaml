@@ -1,10 +1,19 @@
 services:
+  # Service 1: The Python Backend
   - type: web
-    name: yodda-premiumv3
+    name: yodda-backend
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app_complete:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.12.0
+
+  # Service 2: The Static Frontend (Fixes your error!)
+  - type: static
+    name: yodda-frontend
+    env: static
+    plan: free
+    buildCommand: echo "No build needed"
+    staticPublishPath: ./
