@@ -5,304 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YODDA Premium v3.0 - Enterprise AI Builder</title>
     <style>
-        /* Aurora Background - Multi-layer gradients with animation */
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff;
-            background: #020617;
-            overflow-x: hidden;
-            position: relative;
-        }
-        .aurora-bg {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: 
-                radial-gradient(125% 125% at 50% 0%, rgba(2,6,23,0.8) 50%, transparent),
-                linear-gradient(135deg, rgba(0,255,0,0.1), rgba(0,0,255,0.1), rgba(255,0,255,0.1));
-            background-size: 400% 400%;
-            animation: auroraShift 20s ease infinite, auroraGlow 5s ease-in-out infinite alternate;
-            z-index: -1;
-            filter: blur(20px); /* Soft blur for organic feel */
-        }
-        @keyframes auroraShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        @keyframes auroraGlow {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-        /* Overlay for readability */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fff; background: #020617; }
+        .aurora-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(125% 125% at 50% 0%, rgba(2,6,23,0.8) 50%, transparent), linear-gradient(135deg, rgba(0,255,0,0.1), rgba(0,0,255,0.1), rgba(255,0,255,0.1)); background-size: 400% 400%; animation: auroraShift 20s ease infinite, auroraGlow 5s ease-in-out infinite alternate; z-index: -1; filter: blur(20px); }
+        @keyframes auroraShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes auroraGlow { 0% { opacity: 0.6; } 100% { opacity: 1; } }
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2,6,23,0.7); z-index: -1; }
-
-        /* Layout */
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        header { text-align: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; margin-bottom: 20px; transition: all 0.3s ease; }
-        header:hover { transform: scale(1.02); }
+        header { text-align: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; margin-bottom: 20px; }
         nav { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        nav button { background: linear-gradient(135deg, #23d5ab, #23a6d5); border: none; color: #fff; padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
-        nav button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(35,213,171,0.5); }
-
-        /* Forms & Modals */
+        button, .button { background: linear-gradient(135deg, #23d5ab, #23a6d5); border: none; color: #fff; padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; text-decoration: none; display: inline-block; text-align: center;}
+        button:hover, .button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(35,213,171,0.5); }
+        button:disabled { background: #555; cursor: not-allowed; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 10; }
         .modal-content { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 20px; border-radius: 10px; width: 300px; text-align: center; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        input { display: block; width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #23a6d5; border-radius: 5px; background: rgba(255,255,255,0.05); color: #fff; }
-        button { background: #23d5ab; border: none; color: #fff; padding: 10px; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
-        button:hover { background: #1e9e8e; }
-
-        /* Dashboard */
+        input, select { display: block; width: 100%; box-sizing: border-box; margin: 10px 0; padding: 10px; border: 1px solid #23a6d5; border-radius: 5px; background: rgba(255,255,255,0.05); color: #fff; }
+        select option { background: #020617; color: #fff; }
         #dashboard { display: none; }
-        #query-input { width: 100%; padding: 10px; margin-bottom: 10px; }
-        #result { margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; }
-        #agents-list, #tiers { margin-top: 20px; }
-        a { color: #23d5ab; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-
-        /* Responsive */
-        @media (max-width: 768px) { nav { flex-direction: column; } }
-        .eye-icon { cursor: pointer; position: absolute; right: 10px; top: 35px; }
-        #admin-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; }
-        #payment-form { display: none; margin-top: 20px; }
-        #logo { width: 100px; display: block; margin: 0 auto; }
+        #result { padding: 20px; background: rgba(0,0,0,0.7); border-left: 3px solid #23d5ab; border-radius: 10px; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; max-height: 400px; overflow-y: auto; margin-top: 20px;}
+        #preview-btn { display: none; margin-top: 10px; }
+        .eye-icon { cursor: pointer; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+        .admin-actions { display: flex; gap: 10px; align-items: center; }
+        #validation-status { font-size: 0.9em; margin-left: 10px; }
+        .status-success { color: #23d5ab; }
+        .status-error { color: #ff4d4d; }
     </style>
 </head>
 <body>
     <div class="aurora-bg"></div>
     <div class="overlay"></div>
     <div class="container">
-        <header>
-            <img id="logo" src="https://your-logo-url-here.com/logo.png" alt="Yodda Logo">  <!-- Replace with your uploaded logo URL -->
-            <h1>Yodda</h1>
-            <p>Enterprise AI Builder</p>
-        </header>
-        <nav id="nav">
-            <button onclick="showModal('login')">Login</button>
-            <button onclick="showModal('register')">Register</button>
-            <button onclick="logout()">Logout</button>
-            <button onclick="showDashboard()">Dashboard</button>
+        <header><h1>Yodda</h1><p>Enterprise AI Builder</p></header>
+        <nav id="main-nav">
+            <button id="login-nav-btn" onclick="showModal('login')">Login</button>
+            <button id="register-nav-btn" onclick="showModal('register')">Register</button>
+            <button id="logout-nav-btn" style="display:none;" onclick="logout()">Logout</button>
         </nav>
         <div id="dashboard">
             <h2>Welcome, <span id="user-email"></span> (<span id="user-tier"></span>)</h2>
-            <p>Builds Used: <span id="builds-used"></span> | Remaining: <span id="builds-remaining"></span></p>
-            <div id="plugin-section">
-                <h3>Add Plugin</h3>
-                <input id="plugin-endpoint" placeholder="API Endpoint" />
-                <input id="plugin-key" placeholder="API Key" />
-                <select id="plugin-type">
-                    <option value="text">Text</option>
-                    <option value="vision">Vision</option>
-                </select>
-                <button onclick="addPlugin()">Add</button>
-            </div>
-            <select id="platform-select">
-                <option value="web">Web</option>
-                <option value="desktop">Desktop</option>
-                <option value="android">Android</option>
-                <option value="ios">iOS</option>
-            </select>
-            <select id="theme-select">
-                <option value="dark-pro">Dark Professional</option>
-                <option value="light-modern">Light Modern</option>
-                <option value="blue-enterprise">Blue Enterprise</option>
-                <option value="vibrant-creative">Vibrant Creative</option>
-                <option value="minimal-zen">Minimal Zen</option>
-                <option value="aurora">Aurora Borealis</option>
-            </select>
-            <input id="query-input" placeholder="Enter query (e.g., create a landing page)" />
+            <select id="platform-select"><option value="web">Web</option><option value="desktop">Desktop</option></select>
+            <select id="theme-select"><option value="dark-pro">Dark Professional</option><option value="light-modern">Light Modern</option></select>
+            <input id="query-input" placeholder="Enter query (e.g., create a landing page for a SaaS)" />
             <button onclick="orchestrate()">Build with Agents</button>
-            <button onclick="debugBuild()">Debug Build</button>
             <div id="result"></div>
-            <h3>Agents</h3>
-            <ul id="agents-list"></ul>
-            <h3>Pricing Tiers</h3>
-            <ul id="tiers"></ul>
-            <div id="upgrade-section">
-                <select id="tier-select">
-                    <option value="BASIC">BASIC ($15/month)</option>
-                    <option value="PRO">PRO ($50/month)</option>
-                    <option value="ENTERPRISE">ENTERPRISE ($149/year)</option>
-                    <option value="PREMIUM">PREMIUM ($249/lifetime)</option>
+            <button id="preview-btn" onclick="previewCode()">Preview</button>
+            <div id="admin-panel" style="display:none; margin-top: 30px;">
+                <h3>Admin Panel: Manage API Keys</h3>
+                <input id="manage-user-email" placeholder="User Email (leave blank for self)" />
+                <select id="manage-provider">
+                    <option value="groq">Groq</option>
+                    <option value="nvidia">NVIDIA</option>
+                    <option value="google_gemini">Google Gemini</option>
+                    <option value="google_ai_studio">Google AI Studio</option>
+                    <option value="huggingface">Hugging Face</option>
                 </select>
-                <button onclick="showPaymentForm()">Upgrade</button>
-            </div>
-            <div id="payment-form">
-                <h3>Dummy Payment</h3>
-                <input id="card-number" placeholder="Card Number" />
-                <input id="expiry" placeholder="Expiry (MM/YY)" />
-                <input id="cvv" placeholder="CVV" />
-                <button onclick="processPayment()">Pay</button>
-            </div>
-            <div id="admin-panel">
-                <h3>Admin Panel</h3>
-                <input id="manage-user-email" placeholder="User Email (optional)" />
-                <input id="manage-endpoint" placeholder="API Endpoint" />
                 <input id="manage-key" placeholder="API Key" />
-                <select id="manage-type">
-                    <option value="text">Text</option>
-                    <option value="vision">Vision</option>
-                </select>
-                <button onclick="managePlugin()">Add/Delete API</button>
+                <div class="admin-actions">
+                    <button onclick="managePlugin()">Save API Key</button>
+                    <button id="validate-btn" onclick="validateKey()">Validate Key</button>
+                    <span id="validation-status"></span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    <div id="login-modal" class="modal">
-        <div class="modal-content">
-            <h2>Login</h2>
-            <input id="login-email" placeholder="Email" />
-            <div style="position: relative;">
-                <input id="login-password" type="password" placeholder="Password" />
-                <span class="eye-icon" onclick="togglePassword('login-password')">👁️</span>
-            </div>
-            <button onclick="login()">Submit</button>
-            <button onclick="closeModal('login')">Close</button>
-        </div>
-    </div>
-    <div id="register-modal" class="modal">
-        <div class="modal-content">
-            <h2>Register</h2>
-            <input id="reg-email" placeholder="Email" />
-            <div style="position: relative;">
-                <input id="reg-password" type="password" placeholder="Password" />
-                <span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span>
-            </div>
-            <button onclick="register()">Submit</button>
-            <button onclick="closeModal('register')">Close</button>
-        </div>
-    </div>
+    <div id="login-modal" class="modal"><div class="modal-content"><h2>Login</h2><input id="login-email" placeholder="Email" /><div style="position: relative;"><input id="login-password" type="password" placeholder="Password" /><span class="eye-icon" onclick="togglePassword('login-password')">👁️</span></div><button onclick="login()">Submit</button><button onclick="closeModal('login')">Close</button></div></div>
+    <div id="register-modal" class="modal"><div class="modal-content"><h2>Register</h2><input id="reg-name" placeholder="Name" /><input id="reg-email" placeholder="Email" /><div style="position: relative;"><input id="reg-password" type="password" placeholder="Password" /><span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span></div><button onclick="register()">Submit</button><button onclick="closeModal('register')">Close</button></div></div>
 
     <script>
-        const API_URL = 'https://yodda.onrender.com';
+        const API_URL = 'https://159.65.144.25';
+        let generatedCode = ''; 
 
-        function showModal(type) {
-            document.getElementById(`${type}-modal`).style.display = 'flex';
-        }
-        function closeModal(type) {
-            document.getElementById(`${type}-modal`).style.display = 'none';
-        }
-        function getToken() {
-            return localStorage.getItem('token');
-        }
-        function setToken(token) {
-            localStorage.setItem('token', token);
-        }
-        function logout() {
-            localStorage.removeItem('token');
-            alert('Logged out');
-            document.getElementById('dashboard').style.display = 'none';
-        }
+        function showModal(type) { document.getElementById(`${type}-modal`).style.display = 'flex'; }
+        function closeModal(type) { document.getElementById(`${type}-modal`).style.display = 'none'; }
+        function getToken() { return localStorage.getItem('token'); }
+        function setToken(token) { localStorage.setItem('token', token); }
+        function logout() { localStorage.removeItem('token'); alert('Logged out'); window.location.reload(); }
 
         async function apiCall(endpoint, method = 'GET', body = null) {
             const headers = { 'Content-Type': 'application/json' };
             const token = getToken();
             if (token) headers['Authorization'] = `Bearer ${token}`;
             const res = await fetch(`${API_URL}${endpoint}`, { method, headers, body: body ? JSON.stringify(body) : null });
-            if (!res.ok) throw new Error(await res.text());
+            if (!res.ok) {
+                const errorText = await res.text();
+                let errorDetail = errorText;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorDetail = (errorJson.detail && typeof errorJson.detail === 'object') ? JSON.stringify(errorJson.detail) : errorJson.detail || errorText;
+                } catch (e) {}
+                throw new Error(errorDetail);
+            }
             return res.json();
         }
 
         async function login() {
             try {
-                const data = await apiCall('/auth/login', 'POST', {
-                    email: document.getElementById('login-email').value,
-                    password: document.getElementById('login-password').value
-                });
+                const data = await apiCall('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value });
                 setToken(data.token);
-                alert('Login successful');
                 closeModal('login');
                 showDashboard();
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) { alert('Login Error: ' + e.message); }
         }
 
         async function register() {
             try {
-                const data = await apiCall('/auth/register', 'POST', {
-                    email: document.getElementById('reg-email').value,
-                    password: document.getElementById('reg-password').value
-                });
-                setToken(data.token);
-                alert('Registered! License: ' + data.license_key);
+                await apiCall('/auth/register', 'POST', { name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value });
+                alert('Registered successfully! Please log in.');
                 closeModal('register');
-                showDashboard();
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) { alert('Registration Error: ' + e.message); }
         }
 
         async function showDashboard() {
-            if (!getToken()) return alert('Please login first');
+            if (!getToken()) return;
+            document.getElementById('login-nav-btn').style.display = 'none';
+            document.getElementById('register-nav-btn').style.display = 'none';
+            document.getElementById('logout-nav-btn').style.display = 'inline-block';
+            document.getElementById('dashboard').style.display = 'block';
+
             try {
                 const user = await apiCall('/auth/me');
                 document.getElementById('user-email').textContent = user.email;
                 document.getElementById('user-tier').textContent = user.tier;
-                document.getElementById('builds-used').textContent = user.builds_used;
-
-                const agents = await apiCall('/api/v1/swarm/agents');
-                const agentsList = document.getElementById('agents-list');
-                agentsList.innerHTML = '';
-                agents.agents.forEach(a => {
-                    const li = document.createElement('li');
-                    li.textContent = `${a.name} (${a.state}, Tasks: ${a.completed_tasks})`;
-                    agentsList.appendChild(li);
-                });
-
-                const tiers = await apiCall('/payments/tiers');
-                const tiersList = document.getElementById('tiers');
-                tiersList.innerHTML = '';
-                Object.entries(tiers.tiers).forEach(([key, val]) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${key}: $${val.price} - ${val.description}`;
-                    tiersList.appendChild(li);
-                });
-
-                // Calc remaining
-                const max = tiers.tiers[user.tier].builds;
-                document.getElementById('builds-remaining').textContent = max === -1 ? 'Unlimited' : max - user.builds_used;
-
                 if (user.is_admin) document.getElementById('admin-panel').style.display = 'block';
-
-                document.getElementById('dashboard').style.display = 'block';
-            } catch (e) { alert('Error loading dashboard: ' + e.message); }
+            } catch (e) { alert('Error loading dashboard: ' + e.message); logout(); }
         }
 
         async function orchestrate() {
-            const query = document.getElementById('query-input').value;
-            if (!query) return alert('Enter a query');
+            const resultDiv = document.getElementById('result');
+            const previewBtn = document.getElementById('preview-btn');
+            resultDiv.textContent = 'Generating code with AI agent...';
+            previewBtn.style.display = 'none';
+            generatedCode = '';
+
             try {
-                const res = await apiCall('/api/v1/swarm/orchestrate', 'POST', {
-                    query,
-                    platform: document.getElementById('platform-select').value,
-                    theme: document.getElementById('theme-select').value
-                });
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = `
-                    <p>Status: ${res.status}</p>
-                    <p>Response: ${res.response}</p>
-                    <p>Agents Used: ${res.agents_used.join(', ')}</p>
-                    <p>Builds Remaining: ${res.builds_remaining}</p>
-                    <a href="${res.generated_url}" target="_blank">View Generated Project</a>
-                    <button onclick="deployBuild('${res.generated_url}')">Deploy</button>
-                `;
-            } catch (e) { alert('Error: ' + e.message); }
+                const result = await apiCall('/api/v1/swarm/orchestrate', 'POST', { query: document.getElementById('query-input').value, platform: document.getElementById('platform-select').value, theme: document.getElementById('theme-select').value });
+                if (result && result.generated_code) {
+                    generatedCode = result.generated_code;
+                    resultDiv.textContent = generatedCode;
+                    previewBtn.style.display = 'block';
+                } else {
+                    resultDiv.textContent = JSON.stringify(result, null, 2);
+                }
+            } catch (e) { resultDiv.textContent = 'Error: ' + e.message; }
         }
 
-        function deployBuild(url) {
-            alert('Deployed successfully at: ' + url);  # Placeholder deployment
+        function previewCode() {
+            if (generatedCode) {
+                const previewWindow = window.open();
+                previewWindow.document.write(generatedCode);
+                previewWindow.document.close();
+            }
         }
 
-        async function debugBuild() {
-            const query = document.getElementById('query-input').value;
-            if (!query) return alert('Enter a query');
+        async function managePlugin() {
             try {
-                const res = await apiCall('/debug/build', 'POST', {
-                    query,
-                    platform: document.getElementById('platform-select').value,
-                    theme: document.getElementById('theme-select').value
+                const result = await apiCall('/api/v1/admin/plugins', 'POST', {
+                    user_email: document.getElementById('manage-user-email').value,
+                    provider: document.getElementById('manage-provider').value,
+                    key: document.getElementById('manage-key').value,
+                    type: 'text' 
                 });
-                alert(res.message + ' - ' + res.details);
-            } catch (e) { alert('Error: ' + e.message); }
+                alert(result.message);
+            } catch (e) { alert('Save Error: ' + e.message); }
+        }
+        
+        async function validateKey() {
+            const provider = document.getElementById('manage-provider').value;
+            const key = document.getElementById('manage-key').value;
+            const statusEl = document.getElementById('validation-status');
+            const validateBtn = document.getElementById('validate-btn');
+            if (!key) { alert('Please enter an API key to validate.'); return; }
+
+            statusEl.textContent = 'Validating...';
+            statusEl.className = '';
+            validateBtn.disabled = true;
+            
+            try {
+                const result = await apiCall('/api/v1/admin/validate_key', 'POST', { provider, key });
+                statusEl.textContent = result.message;
+                statusEl.className = 'status-success';
+            } catch (e) {
+                statusEl.textContent = 'Validation Failed: ' + e.message;
+                statusEl.className = 'status-error';
+            } finally {
+                validateBtn.disabled = false;
+            }
         }
 
         function togglePassword(id) {
@@ -310,50 +198,7 @@
             input.type = input.type === 'password' ? 'text' : 'password';
         }
 
-        async function addPlugin() {
-            try {
-                const data = await apiCall('/plugins/add', 'POST', {
-                    endpoint: document.getElementById('plugin-endpoint').value,
-                    key: document.getElementById('plugin-key').value,
-                    type: document.getElementById('plugin-type').value
-                });
-                alert('Plugin added');
-            } catch (e) { alert('Error: ' + e.message); }
-        }
-
-        async function managePlugin() {
-            try {
-                const data = await apiCall('/plugins/manage', 'POST', {
-                    user_email: document.getElementById('manage-user-email').value,
-                    plugin: {
-                        endpoint: document.getElementById('manage-endpoint').value,
-                        key: document.getElementById('manage-key').value,
-                        type: document.getElementById('manage-type').value
-                    }
-                });
-                alert('Plugin managed');
-            } catch (e) { alert('Error: ' + e.message); }
-        }
-
-        function showPaymentForm() {
-            document.getElementById('payment-form').style.display = 'block';
-        }
-
-        async function processPayment() {
-            try {
-                const data = await apiCall('/payments/process', 'POST', {
-                    tier: document.getElementById('tier-select').value,
-                    card_number: document.getElementById('card-number').value,
-                    expiry: document.getElementById('expiry').value,
-                    cvv: document.getElementById('cvv').value
-                });
-                alert('Payment successful - Tier upgraded');
-                showDashboard();
-            } catch (e) { alert('Error: ' + e.message); }
-        }
-
-        // Auto-load dashboard if token exists
-        if (getToken()) showDashboard();
+        if (getToken()) { showDashboard(); }
     </script>
 </body>
 </html>
