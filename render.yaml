@@ -10,10 +10,5 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.0
 
-  # Service 2: The Static Frontend (Fixes your error!)
-  - type: static
-    name: yodda-frontend
-    env: static
-    plan: free
-    buildCommand: echo "No build needed"
-    staticPublishPath: ./
+  # NOTE: Static frontend is deployed separately as a Static Site in the Render UI.
+  # If you want Blueprints to manage it too, we can re-introduce a static site block later.
