@@ -1,4 +1,5 @@
 import os
+import sys
 import secrets
 import hashlib
 import uuid
@@ -6,13 +7,19 @@ import requests
 import json
 import logging
 from datetime import datetime, timedelta
+from typing import Optional
+
+import jwt
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import uvicorn
-import jwt
+
+from auth import get_password_hash, verify_password
+
+sys.path.append(".")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,7 +41,10 @@ API_PROVIDER_CONFIG = {
     "google_ai_studio": {"endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent", "model": "gemini-1.5-flash-latest"}
 }
 
-class UserRegister(BaseModel): name: str; email: str; password: str = Field(..., min_length=8)
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str = Field(..., min_length=8)
 class UserLogin(BaseModel): email: str; password: str
 class OrchestrateRequest(BaseModel): query: str; platform: str; theme: str
 class PluginRequest(BaseModel): provider: str; key: str; type: str
@@ -50,6 +60,42 @@ def load_db():
 def save_db(db):
     with open(Config.DB_FILE, "w") as f: json.dump(db, f, indent=4)
 
+
+def init_sqlite_db():
+    """
+    Ensure SQLite test.db exists with a users table and a default admin user.
+    This runs on startup so a fresh server can work without manual seeding.
+    """
+    import sqlite3
+
+    db_path = "test.db"
+    conn = sqlite3.connect(db_path)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute("SELECT COUNT(*) FROM users")
+        count = cur.fetchone()[0]
+        if count == 0:
+            admin_email = "admin@test.com"
+            admin_password_hash = get_password_hash("password123")
+            cur.execute(
+                "INSERT INTO users (email, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?)",
+                (admin_email, admin_password_hash, 1, datetime.utcnow().isoformat()),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
 DataStore = load_db()
 app = FastAPI(title="YODDA", description="YODDA Backend", version="1.0.0")
 app.add_middleware(
@@ -59,6 +105,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    """
+    Initialize the SQLite database with a default admin user if needed.
+    """
+    init_sqlite_db()
 
 router = APIRouter()
 api_router = APIRouter(prefix="/api/v1")
@@ -88,15 +142,37 @@ def get_current_admin_user(current_user: dict = Depends(get_current_user)) -> di
 @router.post("/auth/register")
 def register(user: UserRegister):
     if user.email in DataStore["users"]: raise HTTPException(status_code=400, detail="Email already registered")
-    DataStore["users"][user.email] = {"name": user.name, "password_hash": hashlib.sha256(user.password.encode()).hexdigest(), "created_at": datetime.utcnow().isoformat(), "is_admin": not DataStore["users"], "tier": "PREMIUM" if not DataStore["users"] else "FREE", "plugins": []}
+    password_hash = get_password_hash(user.password)
+    DataStore["users"][user.email] = {
+        "name": user.name,
+        "password_hash": password_hash,
+        "created_at": datetime.utcnow().isoformat(),
+        "is_admin": not DataStore["users"],
+        "tier": "PREMIUM" if not DataStore["users"] else "FREE",
+        "plugins": [],
+    }
     save_db(DataStore)
     return {"token": create_jwt_token(user.email)}
 
 @router.post("/auth/login")
 def login(credentials: UserLogin):
     user = DataStore["users"].get(credentials.email)
-    if not user or hashlib.sha256(credentials.password.encode()).hexdigest() != user["password_hash"]:
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    stored_hash: Optional[str] = user.get("password_hash")
+    if not stored_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Prefer bcrypt hashes; fall back to legacy SHA256 comparison if needed.
+    if stored_hash.startswith("$2") and "$" in stored_hash:
+        if not verify_password(credentials.password, stored_hash):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    else:
+        legacy_hash = hashlib.sha256(credentials.password.encode()).hexdigest()
+        if legacy_hash != stored_hash:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
     return {"token": create_jwt_token(credentials.email)}
 
 @router.get("/auth/me")
