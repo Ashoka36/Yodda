@@ -73,7 +73,7 @@
     <div id="register-modal" class="modal"><div class="modal-content"><h2>Register</h2><input id="reg-name" placeholder="Name" /><input id="reg-email" placeholder="Email" /><div style="position: relative;"><input id="reg-password" type="password" placeholder="Password" /><span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span></div><button onclick="register()">Submit</button><button onclick="closeModal('register')">Close</button></div></div>
 
     <script>
-        const API_URL = 'https://159.65.144.25';
+        const API_URL = 'http://159.65.144.25:5000';
         let generatedCode = ''; 
 
         function showModal(type) { document.getElementById(`${type}-modal`).style.display = 'flex'; }

@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import uvicorn
+import jwt
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,7 +52,13 @@ def save_db(db):
 
 DataStore = load_db()
 app = FastAPI(title="YODDA", description="YODDA Backend", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 router = APIRouter()
 api_router = APIRouter(prefix="/api/v1")
@@ -186,4 +193,5 @@ def validate_key(req: ValidateRequest, admin_user: dict = Depends(get_current_ad
 
 app.include_router(router)
 app.include_router(api_router)
-if __name__ == "__main__": uvicorn.run(app, host="127.0.0.1", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="159.65.144.25", port=5000)

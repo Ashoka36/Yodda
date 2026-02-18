@@ -19,7 +19,7 @@ app = FastAPI(title="YODDA Premium v3.0 COMPLETE", version="3.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"]
 )
@@ -75,6 +75,7 @@ class AdminSetup(BaseModel):
     password: str
 
 class UserRegister(BaseModel):
+    name: str | None = None
     email: str
     password: str
 
@@ -105,6 +106,18 @@ class OrchestrateRequest(BaseModel):
     query: str
     platform: str = "web"
     theme: str = "dark-pro"
+
+class PluginRequest(BaseModel):
+    provider: str
+    key: str
+    type: str  # text or vision
+
+class AdminPluginRequest(PluginRequest):
+    user_email: str | None = None
+
+class ValidateRequest(BaseModel):
+    provider: str
+    key: str
 
 # ==================== AUTH HELPERS ====================
 def hash_password(password: str) -> str:
@@ -433,21 +446,60 @@ def orchestrate(data: OrchestrateRequest, payload = Depends(verify_token)):
     build_id = uuid.uuid4().hex[:8]
     build_dir = f"builds/{build_id}"
     os.makedirs(build_dir, exist_ok=True)
-    file_path = f"{build_dir}/index.{data.platform if data.platform != 'web' else 'html'}"
+    file_ext = data.platform if data.platform != "web" else "html"
+    file_path = f"{build_dir}/index.{file_ext}"
     with open(file_path, "w") as f:
         f.write(generated_content)
-    
-    base_url = "https://yodda.onrender.com"
-    generated_url = f"{base_url}/builds/{build_id}/index.{data.platform if data.platform != 'web' else 'html'}"
+
+    base_url = "http://159.65.144.25:5000"
+    generated_url = f"{base_url}/builds/{build_id}/index.{file_ext}"
     
     return {
         "status": "success",
         "query": query,
         "response": "Build complete! Your project is ready.",
+        "generated_code": generated_content,
         "generated_url": generated_url,
         "agents_used": agents_used,
         "builds_remaining": max_builds - user["builds_used"] if max_builds != -1 else "unlimited"
     }
+
+@app.post("/api/v1/admin/plugins")
+def admin_manage_plugins(req: AdminPluginRequest, payload=Depends(verify_token)):
+    if not payload.get("is_admin"):
+        raise HTTPException(403, "Admin only")
+
+    target_email = req.user_email or payload.get("email")
+    if not target_email:
+        raise HTTPException(400, "Missing target user email")
+
+    target_user = None
+    for u in users_db.values():
+        if u["email"] == target_email:
+            target_user = u
+            break
+    if not target_user:
+        raise HTTPException(404, f"User '{target_email}' not found")
+
+    plugin_entry = {"provider": req.provider, "key": req.key, "type": req.type}
+    target_user["plugins"] = [p for p in target_user.get("plugins", []) if p.get("type") != req.type]
+    target_user["plugins"].append(plugin_entry)
+    return {"message": f"API key for '{req.provider}' saved."}
+
+@app.post("/api/v1/admin/validate_key")
+def admin_validate_key(req: ValidateRequest, payload=Depends(verify_token)):
+    if not payload.get("is_admin"):
+        raise HTTPException(403, "Admin only")
+
+    if not req.key:
+        raise HTTPException(400, "Missing API key")
+
+    # Keep validation lightweight; NVIDIA can be validated structurally.
+    if req.provider.lower() == "nvidia":
+        if not validate_api(NVIDIA_API_URL, req.key):
+            raise HTTPException(400, "API key is invalid.")
+
+    return {"message": "API key is valid."}
 
 @app.post("/debug/build")
 def debug_build(data: OrchestrateRequest, payload = Depends(verify_token)):
@@ -460,5 +512,4 @@ def get_themes():
     return {"themes": GAMMA_THEMES}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="159.65.144.25", port=5000)
