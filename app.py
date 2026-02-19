@@ -270,4 +270,8 @@ def validate_key(req: ValidateRequest, admin_user: dict = Depends(get_current_ad
 app.include_router(router)
 app.include_router(api_router)
 if __name__ == "__main__":
-    uvicorn.run(app, host="159.65.144.25", port=5000)
+    uvicorn.run(
+        app,
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8000")),
+    )

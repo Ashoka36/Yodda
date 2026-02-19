@@ -35,48 +35,115 @@
     <div class="aurora-bg"></div>
     <div class="overlay"></div>
     <div class="container">
-        <header><h1>Yodda</h1><p>Enterprise AI Builder</p></header>
-        <nav id="main-nav">
-            <button id="login-nav-btn" onclick="showModal('login')">Login</button>
-            <button id="register-nav-btn" onclick="showModal('register')">Register</button>
-            <button id="logout-nav-btn" style="display:none;" onclick="logout()">Logout</button>
-        </nav>
-        <div id="dashboard">
-            <h2>Welcome, <span id="user-email"></span> (<span id="user-tier"></span>)</h2>
-            <select id="platform-select"><option value="web">Web</option><option value="desktop">Desktop</option></select>
-            <select id="theme-select"><option value="dark-pro">Dark Professional</option><option value="light-modern">Light Modern</option></select>
-            <input id="query-input" placeholder="Enter query (e.g., create a landing page for a SaaS)" />
-            <button onclick="orchestrate()">Build with Agents</button>
-            <div id="result"></div>
-            <button id="preview-btn" onclick="previewCode()">Preview</button>
-            <div id="admin-panel" style="display:none; margin-top: 30px;">
-                <h3>Admin Panel: Manage API Keys</h3>
-                <input id="manage-user-email" placeholder="User Email (leave blank for self)" />
-                <select id="manage-provider">
-                    <option value="groq">Groq</option>
-                    <option value="nvidia">NVIDIA</option>
-                    <option value="google_gemini">Google Gemini</option>
-                    <option value="google_ai_studio">Google AI Studio</option>
-                    <option value="huggingface">Hugging Face</option>
-                </select>
-                <input id="manage-key" placeholder="API Key" />
-                <div class="admin-actions">
-                    <button onclick="managePlugin()">Save API Key</button>
-                    <button id="validate-btn" onclick="validateKey()">Validate Key</button>
-                    <span id="validation-status"></span>
-                </div>
+        <header>
+            <h1>Yodda Swarm Console</h1>
+            <p>Enterprise Multi-Agent Builder on NVIDIA NIM</p>
+            <nav id="main-nav">
+                <button id="login-nav-btn" onclick="showModal('login')">Login</button>
+                <button id="register-nav-btn" onclick="showModal('register')">Register</button>
+                <button id="logout-nav-btn" style="display:none;" onclick="logout()">Logout</button>
+            </nav>
+        </header>
+        <div id="dashboard" style="display:none; margin-top: 20px;">
+            <div style="display:flex; gap:20px;">
+                <aside style="width:28%; background:rgba(15,23,42,0.9); border-radius:10px; padding:15px; border:1px solid #22c55e;">
+                    <h3>Agent Logs</h3>
+                    <pre id="agent-logs" style="max-height:400px; overflow-y:auto; font-family: 'Courier New', monospace; font-size: 12px;"></pre>
+                </aside>
+                <main style="flex:1; background:rgba(15,23,42,0.9); border-radius:10px; padding:15px; border:1px solid #0ea5e9;">
+                    <h2>Build Workspace</h2>
+                    <p>Signed in as <span id="user-email"></span> (<span id="user-tier"></span>)</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <label>Platform
+                            <select id="platform-select">
+                                <option value="web">Web</option>
+                                <option value="desktop">Desktop</option>
+                            </select>
+                        </label>
+                        <label>Theme
+                            <select id="theme-select">
+                                <option value="website-builder">Website Builder</option>
+                                <option value="presentation-mode">Presentation Mode</option>
+                                <option value="saas-boilerplate">SaaS Boilerplate</option>
+                                <option value="dashboard-suite">Dashboard Suite</option>
+                                <option value="landing-funnel">Landing Funnel</option>
+                                <option value="knowledge-base">Knowledge Base</option>
+                            </select>
+                        </label>
+                    </div>
+                    <textarea id="query-input" placeholder="Describe what you want to build (e.g., multi-tenant SaaS dashboard with billing)..." style="width:100%; min-height:80px; margin-top:10px;"></textarea>
+                    <button onclick="orchestrate()" style="margin-top:10px;">Build with Agents</button>
+                    <div id="result"></div>
+                    <button id="preview-btn" onclick="previewCode()">Preview</button>
+
+                    <div id="admin-panel" style="display:none; margin-top: 30px;">
+                        <h3>Admin Panel: Manage API Keys</h3>
+                        <input id="manage-user-email" placeholder="User Email (leave blank for self)" />
+                        <select id="manage-provider">
+                            <option value="groq">Groq</option>
+                            <option value="nvidia">NVIDIA</option>
+                            <option value="google_gemini">Google Gemini</option>
+                            <option value="google_ai_studio">Google AI Studio</option>
+                            <option value="huggingface">Hugging Face</option>
+                        </select>
+                        <input id="manage-key" placeholder="API Key" />
+                        <div class="admin-actions">
+                            <button onclick="managePlugin()">Save API Key</button>
+                            <button id="validate-btn" onclick="validateKey()">Validate Key</button>
+                            <span id="validation-status"></span>
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
     </div>
 
-    <div id="login-modal" class="modal"><div class="modal-content"><h2>Login</h2><input id="login-email" placeholder="Email" /><div style="position: relative;"><input id="login-password" type="password" placeholder="Password" /><span class="eye-icon" onclick="togglePassword('login-password')">👁️</span></div><button onclick="login()">Submit</button><button onclick="closeModal('login')">Close</button></div></div>
-    <div id="register-modal" class="modal"><div class="modal-content"><h2>Register</h2><input id="reg-name" placeholder="Name" /><input id="reg-email" placeholder="Email" /><div style="position: relative;"><input id="reg-password" type="password" placeholder="Password" /><span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span></div><button onclick="register()">Submit</button><button onclick="closeModal('register')">Close</button></div></div>
+    <div id="login-modal" class="modal">
+        <div class="modal-content" style="background: radial-gradient(circle at top, rgba(34,197,94,0.2), rgba(15,23,42,0.95)); font-family: 'Courier New', monospace; text-align:left;">
+            <h2>Yodda Access Gate</h2>
+            <pre id="system-status" style="background:rgba(0,0,0,0.6); padding:10px; border-radius:6px; max-height:120px; overflow-y:auto; font-size:12px; margin-bottom:10px;">
+Checking system status...
+            </pre>
+            <label>Email
+                <input id="login-email" placeholder="you@company.com" />
+            </label>
+            <label>Password
+                <div style="position: relative;">
+                    <input id="login-password" type="password" placeholder="••••••••" />
+                    <span class="eye-icon" onclick="togglePassword('login-password')">👁️</span>
+                </div>
+            </label>
+            <button onclick="login()">Enter Console</button>
+            <button onclick="closeModal('login')">Close</button>
+        </div>
+    </div>
+
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <h2>Register</h2>
+            <input id="reg-name" placeholder="Name" />
+            <input id="reg-email" placeholder="Email" />
+            <div style="position: relative;">
+                <input id="reg-password" type="password" placeholder="Password" />
+                <span class="eye-icon" onclick="togglePassword('reg-password')">👁️</span>
+            </div>
+            <button onclick="register()">Submit</button>
+            <button onclick="closeModal('register')">Close</button>
+        </div>
+    </div>
 
     <script>
-        const API_URL = 'http://159.65.144.25:5000';
+        const API_URL = window.location.origin.replace(/\/$/, '');
         let generatedCode = ''; 
 
-        function showModal(type) { document.getElementById(`${type}-modal`).style.display = 'flex'; }
+        function showModal(type) {
+            const modal = document.getElementById(`${type}-modal`);
+            if (!modal) return;
+            modal.style.display = 'flex';
+            if (type === 'login') {
+                loadSystemStatus();
+            }
+        }
         function closeModal(type) { document.getElementById(`${type}-modal`).style.display = 'none'; }
         function getToken() { return localStorage.getItem('token'); }
         function setToken(token) { localStorage.setItem('token', token); }
@@ -134,18 +201,29 @@
         async function orchestrate() {
             const resultDiv = document.getElementById('result');
             const previewBtn = document.getElementById('preview-btn');
+            const logsEl = document.getElementById('agent-logs');
             resultDiv.textContent = 'Generating code with AI agent...';
             previewBtn.style.display = 'none';
             generatedCode = '';
+            if (logsEl) logsEl.textContent = '';
 
             try {
-                const result = await apiCall('/api/v1/swarm/orchestrate', 'POST', { query: document.getElementById('query-input').value, platform: document.getElementById('platform-select').value, theme: document.getElementById('theme-select').value });
+                const result = await apiCall('/api/v1/swarm/orchestrate', 'POST', {
+                    query: document.getElementById('query-input').value,
+                    platform: document.getElementById('platform-select').value,
+                    theme: document.getElementById('theme-select').value
+                });
                 if (result && result.generated_code) {
                     generatedCode = result.generated_code;
                     resultDiv.textContent = generatedCode;
                     previewBtn.style.display = 'block';
                 } else {
                     resultDiv.textContent = JSON.stringify(result, null, 2);
+                }
+                if (logsEl && result.agent_logs) {
+                    logsEl.textContent = result.agent_logs
+                        .map(l => `[${l.timestamp}] ${l.agent}: ${l.action}`)
+                        .join('\n');
                 }
             } catch (e) { resultDiv.textContent = 'Error: ' + e.message; }
         }
@@ -196,6 +274,25 @@
         function togglePassword(id) {
             const input = document.getElementById(id);
             input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        async function loadSystemStatus() {
+            const statusEl = document.getElementById('system-status');
+            if (!statusEl) return;
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                statusEl.textContent =
+`SYSTEM STATUS
+────────────
+Backend:      ${data.status || 'unknown'}
+Version:      ${data.version || 'n/a'}
+Users:        ${data.users ?? 'n/a'}
+NVIDIA Ready: ${data.nvidia_ready ? 'YES' : 'NO'}
+Timestamp:    ${data.timestamp || 'n/a'}`;
+            } catch (e) {
+                statusEl.textContent = 'SYSTEM STATUS\n────────────\nError fetching status: ' + e.message;
+            }
         }
 
         if (getToken()) { showDashboard(); }
